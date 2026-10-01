@@ -25,6 +25,9 @@ function walk(dir) {
       .replace(/<(\w+)[^>]*\bdata-keep\b[^>]*>[\s\S]*?<\/\1>/g, (m) => `\u0000KEEP${kept.push(m) - 1}\u0000`)
       .replaceAll('https://www.bentopdf.com', brand.siteUrl + '/pdf')
       .replaceAll('BentoPDF', brand.name)
+      // 上游的推特、领英、GitHub 账号不是我们的，替换品牌名后会变成不存在的「@网站名」，直接去掉
+      .replace(/[ \t]*<meta name="twitter:(site|creator)"[^>]*>\n?/g, '')
+      .replace(/,\s*"sameAs":\s*\[[^\]]*\]/g, '')
       .replace(/\u0000KEEP(\d+)\u0000/g, (_, i) => kept[Number(i)]);
     if (out === src) continue;
     writeFileSync(p, out);
