@@ -11,4 +11,5 @@
 - `src/partials/navbar-simple.html`、`simple-index.html`：导航栏换成和主站一致的版本（含登录状态）
 - `public/locales/zh/common.json`：`simpleMode` 标题文案
 - 新增 `src/js/utils/toolbox-menu.ts`：顶部「工具箱」二级菜单，数据读主站的 `/menu.json`
+- 新增 `src/js/utils/zh-ui.ts`：上游没接入翻译的 53 个主按钮，在中文界面下换成中文
 - 品牌替换在构建后由 `deploy/rebrand-pdf.mjs` 完成，不改源码

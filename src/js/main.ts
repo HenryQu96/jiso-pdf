@@ -32,6 +32,7 @@ import {
   renderAccount,
 } from './utils/login-gate.js';
 import { setupToolboxMenu } from './utils/toolbox-menu.js';
+import { applyZhButtonText } from './utils/zh-ui.js';
 import {
   getStoredItem,
   setStoredItem,
@@ -48,6 +49,7 @@ const init = async () => {
   void setupToolboxMenu();
   injectLanguageSwitcher();
   applyTranslations();
+  applyZhButtonText();
 
   if (isCurrentPageDisabled()) {
     document.title = t('disabledTool.title') || 'Tool Unavailable';
