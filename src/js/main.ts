@@ -49,7 +49,7 @@ const init = async () => {
   void setupToolboxMenu();
   injectLanguageSwitcher();
   applyTranslations();
-  applyZhButtonText();
+  void applyZhButtonText();
 
   if (isCurrentPageDisabled()) {
     document.title = t('disabledTool.title') || 'Tool Unavailable';

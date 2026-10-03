@@ -1,5 +1,6 @@
-// 工具超市：上游有 50 多个工具页的主按钮没有接入翻译（写死英文）。
-// 页面是中文时，把这些按钮文字换成中文；不改动上游的页面文件，方便以后合并上游更新。
+// 工具超市：上游不少工具页的按钮、选项、提示写死了英文，没有接入翻译。
+// 页面是简体中文时，按词典把这些文字换成中文（含上传文件后才出现的界面、弹窗）。
+// 不改动上游的页面文件，方便以后合并上游更新。词典：zh-ui-dict.json（只有中文页面才加载）。
 import i18next from 'i18next';
 
 const ZH: Record<string, string> = {
@@ -58,13 +59,78 @@ const ZH: Record<string, string> = {
   'Split PDF': '拆分 PDF',
 };
 
-export function applyZhButtonText(): void {
-  if (!i18next.language?.startsWith('zh') || i18next.language === 'zh-TW') return;
-  document.querySelectorAll<HTMLButtonElement>('button').forEach((btn) => {
-    const walker = document.createTreeWalker(btn, NodeFilter.SHOW_TEXT);
-    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-      const key = n.nodeValue?.trim();
-      if (key && ZH[key]) n.nodeValue = n.nodeValue!.replace(key, ZH[key]);
+// 用户自己的内容不翻：PDF 预览文字层、可编辑区域、输入框、Markdown 编辑器和预览、代码、图表
+const SKIP =
+  'script,style,code,pre,svg,[contenteditable],.textLayer,.annotationLayer,' +
+  '#markdown-editor-container,#simple-mode-lang-switcher,[data-no-zh]';
+const ATTRS = ['placeholder', 'title', 'aria-label'] as const;
+const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
+
+let dict: Record<string, string> = ZH;
+
+function translateText(node: Text): void {
+  const raw = node.nodeValue;
+  if (!raw || !/[A-Za-z]/.test(raw)) return;
+  const zh = dict[norm(raw)];
+  if (!zh) return;
+  const parent = node.parentElement;
+  if (!parent || parent.tagName === 'TEXTAREA' || parent.closest(SKIP)) return; // 文本框里是用户输入的内容
+  // 保留原来前后的空白，排版不变
+  node.nodeValue = raw.match(/^\s*/)![0] + zh + raw.match(/\s*$/)![0];
+}
+
+function translateAttrs(el: Element): void {
+  for (const a of ATTRS) {
+    const v = el.getAttribute(a);
+    const zh = v && dict[norm(v)];
+    if (zh && !el.closest(SKIP)) el.setAttribute(a, zh);
+  }
+}
+
+function translateTree(root: Node): void {
+  if (root.nodeType === Node.TEXT_NODE) return translateText(root as Text);
+  if (!(root instanceof Element)) return;
+  if (root.closest(SKIP)) return;
+  translateAttrs(root);
+  root.querySelectorAll('[placeholder],[title],[aria-label]').forEach(translateAttrs);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) translateText(n as Text);
+}
+
+let started = false;
+
+async function start(): Promise<void> {
+  if (started) return;
+  started = true;
+  translateTree(document.body); // 先用内置的按钮词典，马上生效
+  try {
+    const full = (await import('./zh-ui-dict.json')).default as Record<string, string>;
+    dict = { ...full, ...ZH };
+  } catch {
+    // 词典加载失败就只翻按钮
+  }
+  translateTree(document.body);
+  // 之后页面上新出现的内容（上传文件后的设置、弹窗、提示）也翻译
+  new MutationObserver((records) => {
+    for (const r of records) {
+      if (r.type === 'childList') r.addedNodes.forEach(translateTree);
+      else if (r.type === 'characterData') translateText(r.target as Text);
+      else if (r.type === 'attributes') translateAttrs(r.target as Element);
     }
+  }).observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: [...ATTRS],
   });
+}
+
+// 中文页面（/pdf/zh/，<html lang="zh">）一加载就开始翻译，不等其他初始化，避免先闪一下英文
+if (/^zh(?!-TW)/i.test(document.documentElement.lang)) void start();
+
+// 语言初始化完成后再确认一次（例如用户在页面里切换成了简体中文）
+export async function applyZhButtonText(): Promise<void> {
+  if (!i18next.language?.startsWith('zh') || i18next.language === 'zh-TW') return;
+  await start();
 }
