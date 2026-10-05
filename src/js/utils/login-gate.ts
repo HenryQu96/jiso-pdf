@@ -115,7 +115,7 @@ export async function enforceLoginGate(): Promise<void> {
       <i class="ph ph-lock-key text-5xl text-amber-300"></i>
       <h2 class="mt-4 text-xl font-bold text-white">登录后免费使用「${title}」</h2>
       <p class="mt-3 text-sm text-gray-400 leading-relaxed">
-        这是高级工具，用渡鸥AI、豹发GEO 等任一产品账号登录后同样免费。<br />
+        这是高级工具，用邮箱收个验证码登录后同样免费。<br />
         文件始终在你的浏览器里处理，不会上传。
       </p>
       <a href="${gate!.loginPath}?next=${next}"
